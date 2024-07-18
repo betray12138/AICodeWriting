@@ -17,7 +17,7 @@ class MaskedMultiHeadAttention(nn.Module):
         
         self.w_combine = nn.Linear(d_model, d_model)    # multi-head composition mapping
         
-    def forward(self, q, k, v, mask=False):
+    def forward(self, q, k, v, mask=None):
         # here q, k, v means input
         batch, time, dimension = q.shape
         n_d = self.d_model // self.n_heads
@@ -33,9 +33,10 @@ class MaskedMultiHeadAttention(nn.Module):
         # here the dimension of score is batch, n_heads, time, time
         score = q @ k.transpose(2, 3) / math.sqrt(n_d)
         
-        if mask:
+        if mask is not None:
             # generate a low-triangle matrix dimension: [time, time]
-            mask = torch.tril(torch.ones(time, time, dtype=bool))
+            # t_mask
+            # mask = torch.tril(torch.ones(time, time, dtype=bool))
             
             # generate the mask for score, -inf can be computed as 0 when doing softmax
             # for example, the time = 4, the generated score is 
