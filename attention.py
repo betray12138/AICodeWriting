@@ -3,11 +3,6 @@ from torch import nn
 import torch.functional as F
 import math
 
-X = torch.randn(128, 64, 512)   # batch, time, dimension
-
-d_model = 512   # the dimension of mapping to QKV space
-n_heads = 8     # multi-head numbers
-
 class MaskedMultiHeadAttention(nn.Module):
     def __init__(self, d_model, n_heads) -> None:
         super(MaskedMultiHeadAttention, self).__init__()
@@ -22,7 +17,7 @@ class MaskedMultiHeadAttention(nn.Module):
         
         self.w_combine = nn.Linear(d_model, d_model)    # multi-head composition mapping
         
-    def forward(self, q, k, v):
+    def forward(self, q, k, v, mask=False):
         # here q, k, v means input
         batch, time, dimension = q.shape
         n_d = self.d_model // self.n_heads
@@ -38,16 +33,17 @@ class MaskedMultiHeadAttention(nn.Module):
         # here the dimension of score is batch, n_heads, time, time
         score = q @ k.transpose(2, 3) / math.sqrt(n_d)
         
-        # generate a low-triangle matrix dimension: [time, time]
-        mask = torch.tril(torch.ones(time, time, dtype=bool))
-        
-        # generate the mask for score, -inf can be computed as 0 when doing softmax
-        # for example, the time = 4, the generated score is 
-        # tensor([[[[ 0.1, -inf, -inf, -inf],
-        #           [ 0.5,  0.6, -inf, -inf],
-        #           [ 0.9,  1.0,  1.1, -inf],
-        #           [ 1.3,  1.4,  1.5,  1.6]]]])
-        score = score.masked_fill(mask == 0, float("-inf"))
+        if mask:
+            # generate a low-triangle matrix dimension: [time, time]
+            mask = torch.tril(torch.ones(time, time, dtype=bool))
+            
+            # generate the mask for score, -inf can be computed as 0 when doing softmax
+            # for example, the time = 4, the generated score is 
+            # tensor([[[[ 0.1, -inf, -inf, -inf],
+            #           [ 0.5,  0.6, -inf, -inf],
+            #           [ 0.9,  1.0,  1.1, -inf],
+            #           [ 1.3,  1.4,  1.5,  1.6]]]])
+            score = score.masked_fill(mask == 0, float("-inf"))
         
         # execute softmax, dim=-1 would execute on the row, for example
         # tensor([[[[1.0000, 0.0000, 0.0000, 0.0000],
@@ -65,9 +61,14 @@ class MaskedMultiHeadAttention(nn.Module):
         output = self.w_combine(score)
         return output
     
-attention = MaskedMultiHeadAttention(d_model=512, n_heads=8)
-output = attention(X, X, X)
-print(output, output.shape)
+if __name__ == '__main__':
+    X = torch.randn(128, 64, 512)   # batch, time, dimension
+
+    d_model = 512   # the dimension of mapping to QKV space
+    n_heads = 8     # multi-head numbers
+    attention = MaskedMultiHeadAttention(d_model=512, n_heads=8)
+    output = attention(X, X, X)
+    print(output, output.shape)
         
         
         
