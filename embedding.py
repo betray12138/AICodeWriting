@@ -41,7 +41,19 @@ class PositionEmbedding(nn.Module):
         seq_len = x.shape[1]
         return self.encoding[:seq_len, :]
         
-    
+
+class TransformerEmbedding(nn.Module):
+    def __init__(self, vocab_size, d_model, max_len, drop_p, device) -> None:
+        super(TransformerEmbedding, self).__init__()
+        self.token_embedding = TokenEmbedding(vocab_size=vocab_size, d_model=d_model)    
+        self.position_embedding = PositionEmbedding(d_model=d_model, maxlen=max_len)
+        self.dropout = nn.Dropout(p=drop_p)
+        
+    def forward(self, x):
+        token_embedding = self.token_embedding(x)
+        position_embedding = self.position_embedding(x)
+        return self.dropout(token_embedding + position_embedding)
+
     
 if __name__ == '__main__':
     X = torch.randn(128, 64, 512)   # batch, time, dimension
