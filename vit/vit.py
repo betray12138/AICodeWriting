@@ -100,6 +100,9 @@ class ViT(nn.Module):
             dim = embedding_dim
         )
         
+        # mean denote mean over patches, cls denote an extra token
+        self.pool = "mean"
+        
         self.transformer = Transformer(embedding_dim=embedding_dim, hidden_dim=hidden_dim, num_head=num_head, d_model=d_model)
         self.linear_head = nn.Linear(embedding_dim, num_classes)
         
